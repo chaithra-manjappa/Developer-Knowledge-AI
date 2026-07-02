@@ -7,7 +7,8 @@ from app.clients.groq_client import GroqClient
 from app.config.env import EnvLoader
 from app.config.settings import Settings
 from app.services.prompt_service import PromptService
-from app.publishers.linkedin_publisher import LinkedInPublisher
+from app.publisher.linkedin_publisher import LinkedInPublisher
+
 
 def main() -> None:
     """Start the application."""
@@ -54,14 +55,14 @@ def main() -> None:
     print("=" * 80)
 
     choice = input(
-    "\nPublish this post? (y/n): "
-).strip().lower()
+        "\nPublish to LinkedIn? (y/n): "
+    ).strip().lower()
 
-if choice == "y":
-    publisher = LinkedInPublisher()
-    publisher.publish(post)
-else:
-    print("Publishing cancelled.")
+    if choice == "y":
+        publisher = LinkedInPublisher()
+        publisher.publish(post)
+    else:
+        print("Publishing cancelled.")
 
 
 if __name__ == "__main__":

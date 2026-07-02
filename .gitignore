@@ -1,9 +1,10 @@
 .env
 .env.*
 !.env.example
+# Browser sessions
+sessions/
 
 __pycache__/
 *.pyc
 .venv/
 venv/
-storage/
