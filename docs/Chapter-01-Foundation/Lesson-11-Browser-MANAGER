@@ -1,0 +1,60 @@
+# Lesson 09 - BrowserManager
+
+## Objective
+
+Create a reusable component responsible for browser lifecycle management.
+
+---
+
+## Responsibilities
+
+BrowserManager is responsible for:
+
+- Starting Playwright
+- Launching Chromium
+- Creating Browser Contexts
+- Creating Pages
+- Closing browser resources
+
+It does not know anything about LinkedIn or any other website.
+
+---
+
+## Lifecycle
+
+BrowserManager
+
+↓
+
+start()
+
+↓
+
+new_page()
+
+↓
+
+stop()
+
+---
+
+## Why separate BrowserManager?
+
+Many future publishers will reuse the same browser infrastructure.
+
+Examples:
+
+- LinkedInPublisher
+- TeamsPublisher
+- GitHubPublisher
+- JiraPublisher
+
+Keeping browser management separate avoids duplicated code and follows the Single Responsibility Principle.
+
+---
+
+## Key Takeaway
+
+BrowserManager manages browsers.
+
+Publishers manage websites.
