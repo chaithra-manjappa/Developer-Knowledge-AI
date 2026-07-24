@@ -20,12 +20,13 @@ class LinkedInPublisher:
             storage_state=Path("sessions/linkedin.json"),
         )
 
-    def publish(self, content: str) -> None:
+    def publish(
+        self,
+        content: str,
+        image_path: str | None = None,
+    ) -> None:
         """
         Publish a LinkedIn post.
-
-        Args:
-            content: LinkedIn post content.
         """
 
         self._browser.start()
@@ -34,15 +35,22 @@ class LinkedInPublisher:
             page = self._browser.new_page()
 
             self._open_feed(page)
-
             self._open_post_dialog(page)
 
+            # Upload image first
+            if image_path:
+                self._upload_image(
+                    page=page,
+                    image_path=image_path,
+                )
+
+            # Always enter the content
             self._enter_content(
                 page=page,
                 content=content,
             )
 
-            #self._publish_post(page)
+            # self._publish_post(page)
 
             print("\n✅ LinkedIn post has been prepared.")
             print("👉 Please review it in the browser and click 'Post' manually.")
@@ -56,9 +64,6 @@ class LinkedInPublisher:
         self,
         page: Page,
     ) -> None:
-        """
-        Open LinkedIn feed.
-        """
 
         print("➡️ Opening LinkedIn feed...")
 
@@ -67,33 +72,30 @@ class LinkedInPublisher:
             wait_until="domcontentloaded",
         )
 
-        print("✅ Feed page opened.")
-
         page.wait_for_timeout(5000)
 
-        print("📄 Current URL:", page.url)
+        print("✅ Feed page opened.")
 
     def _open_post_dialog(
         self,
         page: Page,
     ) -> None:
-        """
-        Opens the LinkedIn post creation dialog.
-        """
 
         print("➡️ Looking for 'Start a post' button...")
 
-        start_post = page.get_by_role(
-            "link",
-            name="Start a post",
+        start_post = page.get_by_text(
+            "Start a post",
+            exact=True,
         )
 
         start_post.wait_for(
-        state="visible",
-        timeout=15000,
+            state="visible",
+            timeout=15000,
         )
 
         start_post.click()
+
+        page.wait_for_timeout(2000)
 
         print("✅ Post dialog opened.")
 
@@ -102,51 +104,96 @@ class LinkedInPublisher:
         page: Page,
         content: str,
     ) -> None:
-        """
-        Enter LinkedIn post content.
-        """
 
-        editor = page.locator(
-            "div[role='textbox']"
+        selectors = [
+            "div[contenteditable='true'][role='textbox']",
+            ".ql-editor",
+            "div[contenteditable='true']",
+        ]
+
+        editor = None
+
+        for selector in selectors:
+
+            try:
+
+                locator = page.locator(selector).first
+
+                locator.wait_for(
+                    state="visible",
+                    timeout=3000,
+                )
+
+                editor = locator
+
+                print(f"✅ Editor found: {selector}")
+
+                break
+
+            except TimeoutError:
+                continue
+
+        if editor is None:
+            raise RuntimeError(
+                "Unable to locate LinkedIn editor."
+            )
+
+        editor.click()
+
+        page.keyboard.type(
+            content,
+            delay=5,
         )
 
-        editor.wait_for(
+        print("✅ Content entered.")
+    def _upload_image(
+        self,
+        page: Page,
+        image_path: str,
+    ) -> None:
+        """
+        Upload image to LinkedIn post.
+        """
+
+        print("➡️ Uploading image...")
+
+        image_button = page.locator(
+            "button.share-promoted-detour-button[aria-label='Add media']"
+        )
+
+        image_button.wait_for(
             state="visible",
             timeout=10000,
         )
 
-        editor.click()
+        with page.expect_file_chooser() as fc:
+            image_button.click()
 
-        editor.fill(content)
+        file_chooser = fc.value
+        file_chooser.set_files(image_path)
+
+        print("✅ Image selected.")
+
+        page.wait_for_timeout(8000)
+
+        print("✅ Image uploaded.")
+           
 
     def _publish_post(
         self,
         page: Page,
     ) -> None:
-        """
-        Click the Post button.
-        """
 
-        try:
-            input(
-                "\nReview the post and press Enter to publish..."
-            )
+        post_button = page.get_by_role(
+            "button",
+            name="Post",
+        )
 
-            post_button = page.get_by_role(
-                "button",
-                name="Post",
-            )
+        post_button.wait_for(
+            state="visible",
+            timeout=10000,
+        )
 
-            post_button.wait_for(
-                state="visible",
-                timeout=10000,
-            )
+        post_button.click()
 
-            post_button.click()
-
-            print("✅ Post published.")
-
-        except TimeoutError as error:
-            raise RuntimeError(
-                "Unable to find the 'Post' button."
-            ) from error
+        print("✅ Post published.")
