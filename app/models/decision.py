@@ -3,8 +3,19 @@ from dataclasses import dataclass
 
 @dataclass
 class Decision:
-    needs_web_search: bool
-    needs_image: bool
-    needs_review: bool
+
     topic: str
+
+    content_type: str
+
+    needs_web_search: bool
+
+    needs_examples: bool
+
+    needs_source_links: bool
+
+    difficulty: str
+
+    target_audience: str
+
     reason: str
