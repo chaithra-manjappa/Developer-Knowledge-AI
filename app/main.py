@@ -2,68 +2,81 @@
 
 from pathlib import Path
 
-from app.agents.linkedin_writer_agent import LinkedInWriterAgent
-from app.clients.groq_client import GroqClient
 from app.config.env import EnvLoader
 from app.config.settings import Settings
-from app.services.prompt_service import PromptService
+
+from app.graph.factory import WorkflowFactory
+
 from app.publisher.linkedin_publisher import LinkedInPublisher
 
 
 def main() -> None:
-    """Start the application."""
 
-    print("🚀 Welcome to Personal Brand AI!\n")
+    print("🚀 Welcome to Personal Content AI\n")
 
-    # Load environment variables
-    EnvLoader(Path(".env")).load()
+    EnvLoader(
+        Path(".env"),
+    ).load()
 
-    # Read configuration
     settings = Settings.from_environment()
 
-    # Ask the user for a topic
-    topic = input("📝 Enter a LinkedIn topic: ").strip()
+    topic = input(
+        "📝 Enter a topic: ",
+    ).strip()
 
     if not topic:
-        print("❌ Topic cannot be empty.")
+
+        print("Topic cannot be empty.")
+
         return
 
-    # Create the Groq client
-    client = GroqClient(
-        api_key=settings.llm_api_key,
-        model=settings.llm_model,
+    workflow = WorkflowFactory(
+        settings,
     )
 
-    # Create the prompt service
-    prompt_service = PromptService(
-        prompts_directory=Path("app/prompts"),
+    result = workflow.graph.invoke(
+        {
+            "user_request": topic,
+            "decision": None,
+            "search_results": [],
+            "content": "",
+        }
     )
 
-    # Create the LinkedIn agent
-    agent = LinkedInWriterAgent(
-        client=client,
-        prompt_service=prompt_service,
-    )
+    decision = result["decision"]
 
-    # Generate the post
-    post = agent.generate(topic)
+    print("\n🧠 Decision")
+    print("=" * 60)
+    print(f"Topic            : {decision.topic}")
+    print(f"Content Type     : {decision.content_type}")
+    print(f"Web Search       : {decision.needs_web_search}")
+    print(f"Examples         : {decision.needs_examples}")
+    print(f"Source Links     : {decision.needs_source_links}")
+    print(f"Difficulty       : {decision.difficulty}")
+    print(f"Audience         : {decision.target_audience}")
+    print("=" * 60)
 
-    print("\n" + "=" * 80)
-    print("✨ Generated LinkedIn Post")
+    print("\n📄 Generated Content")
     print("=" * 80)
-    print(post)
+    print(result["content"])
     print("=" * 80)
 
-    choice = input(
+    publish = input(
         "\nPublish to LinkedIn? (y/n): "
-    ).strip().lower()
+    ).lower()
 
-    if choice == "y":
-        publisher = LinkedInPublisher()
-        publisher.publish(post)
+    if publish == "y":
+
+        LinkedInPublisher().publish(
+            content=result["content"],
+            image_path=None,
+        )
+
     else:
+
         print("Publishing cancelled.")
 
 
 if __name__ == "__main__":
+
     main()
